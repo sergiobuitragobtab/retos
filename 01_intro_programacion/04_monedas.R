@@ -18,6 +18,8 @@ res <- 0
 i <- 0
 while(i <= nrow(pos)) {
   val <- (pos[i,1]*l02 + pos[i,2]*l01 + pos[i,3]*p50 + pos[i,4]*p20 + pos[i,5]*p10 + pos[i,6]*p05 + pos[i,7]*p02 + pos[i,8]*p01)
-  if (val <= 200) { res <- res + 1} 
+  if (length(val) > 0) {
+    if (val == 200) { res <- res + 1}    
+  }
   i <- i + 1  
 }
