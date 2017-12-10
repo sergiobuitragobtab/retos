@@ -1,0 +1,134 @@
+---
+title: "Análisis de la calidad del aire de la Madrid"
+#author: "Sergio Buitrago"
+#date: "10 de diciembre de 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Datos del análisis:
+
+* **Fuente:** [Portal de datos abiertos del Ayuntamiento de Madrid](http://datos.madrid.es)
+* **Periodo:** 2016 *(por intevalo mensual)*
+* **Magnitud:** Monóxido de Carbono CO mg/m3
+* **Técnica de medida:** Absorción infrarroja
+
+* **EST1:** Pza. Manuel Becerra (28079012)
+* **EST2:** Casa de Campo (28079024)
+
+
+##Resultado:
+
+```{r cargadatos, echo=FALSE}
+
+inicio <- function() {
+  library(stringr)
+}
+
+convertir_numero <- function(valor) {
+  res <-  as.numeric(sub(",", ".", valor, fixed = TRUE))
+  res <- round(res,2)
+  if (is.na(res) == TRUE) {res <- 0}
+  return(res)
+}
+
+cargar_datos <- function (fichero) {
+  ruta <- paste(getwd(), "/", "dat/", fichero, sep = "")
+  datos_leidos <- readLines(ruta)
+  datos_split <-  strsplit(datos_leidos, split=",")
+  df <- data.frame(matrix(unlist(datos_split), nrow=length(datos_split), byrow=TRUE))
+  nombres_columnas <- c("estacion_codigo", "estacion_municipio", "estacion_estacion", "magnitud", "tecnica", "dato diario", "año", "mes", "d1", "v1", "d2", "v2", "d3", "v3", "d4", "v4", "d5", "v5", "d6", "v6", "d7", "v7", "d8", "v8", "d9", "v9", "d10", "v10", "d11", "v11", "d12", "v12", "d13", "v13", "d14", "v14", "d15", "v15", "d16", "v16", "d17", "v17", "d18", "v18", "d19", "v19", "d20", "v20", "d21", "v21", "d22", "v22", "d23", "v23", "d24", "v24", "d25", "v25", "d26", "v26", "d27", "v27", "d28", "v28", "d29", "v29", "d30", "v30", "d31", "v31")
+  colnames(df) <- nombres_columnas
+  return(df)
+}
+
+
+analizar_datos <- function(df) {
+  #establecemos los parámetros de análisis
+  
+  #estaciones:
+  # Pza. de España (28079004)
+  estacion_codigo1 <- "28"
+  estacion_municipio1 <- "079"
+  estacion_estacion1 <- "004"
+  
+  # Casa de Campo (28079024)
+  estacion_codigo2 <- "28"
+  estacion_municipio2 <- "079"
+  estacion_estacion2 <- "024"
+  
+  #magnitud
+  # Monóxido de Carbono CO mg/m3 (06)
+  magnitud <- "06"
+  
+  #técnica
+  # Absorción infrarroja (48)
+  tecnica <- "48"
+  
+  #seleccionamos los datos objeto de análisis
+  df_analisis <- df[,c("estacion_codigo", "estacion_municipio", "estacion_estacion", "magnitud", "tecnica", "dato diario", "año", "mes", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15", "d16", "d17", "d18", "d19", "d20", "d21", "d22", "d23", "d24", "d25", "d26", "d27", "d28", "d29", "d30", "d31")]
+  df_analisis <- df_analisis[df_analisis$magnitud == magnitud & df_analisis$tecnica == tecnica,]
+  
+  #seleccionamos los datos objeto de análisis para cada estación
+  df_analisis_est1 <- df_analisis[df_analisis$estacion_codigo == estacion_codigo1 & df_analisis$estacion_municipio == estacion_municipio1 & df_analisis$estacion_estacion == estacion_estacion1,]
+  #df_analisis_est1 <- lapply(df_analisis_est1, as.numeric)
+  df_analisis_est2 <- df_analisis[df_analisis$estacion_codigo == estacion_codigo2 & df_analisis$estacion_municipio == estacion_municipio2 & df_analisis$estacion_estacion == estacion_estacion2,]
+  #df_analisis_est2 <- lapply(df_analisis_est2, as.numeric)
+  
+  for (i in 1:12) {
+    m1 <- df_analisis_est1[i,9:length(df_analisis_est1)]
+    m1 <- unlist(lapply(m1, convertir_numero))
+    m2 <- df_analisis_est2[i,9:length(df_analisis_est2)]
+    m2 <- unlist(lapply(m2, convertir_numero))
+    fila <- c(max(m1), max(m2), min(m1), min(m2), mean(m1), mean(m2))
+    if (i==1) {
+      tabla <- data.frame(fila)
+    } else {
+      tabla <- cbind(tabla, fila)
+    }
+    i <- i + 1
+  }
+  colnames(tabla) <- c("ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIM")
+  rownames(tabla) <- c("EST1 Máximo","EST2 Máximo","EST1 Mínimo","EST2 Mínimo","EST1 Media","EST2 Media")
+  return(tabla)
+}
+
+inicio()
+datos_meteo <- cargar_datos("datos201710.txt")
+tabla <- analizar_datos(datos_meteo)
+```
+###  Parámetros estadísticos
+
+```{r tabla estadistica, echo=FALSE}
+print(tabla)
+```
+
+
+###  Media de contaminación
+
+```{r grafico, echo=FALSE}
+
+mes <- c(1,2,3,4,5,6,7,8,9,10,11,12)
+med_est1 <- unlist(tabla[5,])
+med_est2 <- unlist(tabla[6,])
+plot(mes, med_est1, type="l", col="red", xlab='mes', ylab='Monóxido de Carbono CO mg/m3', main="Monóxido de Carbono CO mg/m3 por mes en cada estación" )
+par(new=TRUE)
+plot(mes, med_est2, type="l", col="green", xlab='mes', ylab='Monóxido de Carbono CO mg/m3' )
+legend('bottomleft', c("EST1: Pza. de España","EST2: Casa de Campo") , lty=1, col=c('red', 'green'), bty='n', cex=1)
+
+```
+
+
+[![texto alternativo](mapa.png)](linkurl)
+
+
+* Tal y como cabría esperar, la contaminación medida en media es casi el doble en Plaza de Espaá que en Casa de Campo.
+* Se observa además un descenso general de la contaminazión en el mes de agosto
+* Se aprecia una tendencia al alza de la media de la contaminazión medida desde agosto hasta final de año.
+
+
+
+Dicembre de 2017. Sergio Buitrago.
