@@ -1,0 +1,102 @@
+---
+title: "Análisis de la evolución de accidentes mortales de tráfico"
+#author: "Sergio Buitrago"
+#date: "3 de febrero de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE, results='hide', message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Datos del análisis:
+
+* **Fuente:** [DGT](http://www.dgt.es/es/seguridad-vial/estadisticas-e-indicadores/)
+* **Periodo:** 1990 - 2016 *(por intevalo anual)*
+
+```{r cargadatos, echo=FALSE, warning=FALSE, results='hide', message=FALSE, warning=FALSE}
+
+options(warn=0)
+
+#instalación de paquetes
+#install.packages("readxl")
+#install.packages("ggplot2")
+#install.packages("dplyr")
+
+#carga de librerías
+library(readxl)
+library(ggplot2)
+library("dplyr")
+#establecimiento de parámetros
+#ruta de trabajo
+path <- paste(getwd(), "dat", sep = "/")
+#fallecidos por año
+file_fallecidos <- "Series-1993-2016_fallecidos-30-dias.xlsx"
+file_fallecidos_sheet <- "M_I-U_Meses"
+#parque automobilístico
+file_parque <- "series_parque_2016.xlsx"
+file_parque_sheet <- "parque_tipos"
+
+```
+
+## Resultados:
+
+
+### Fallecidos por año
+
+```{r evolucion fallecidos, echo=FALSE, warning=FALSE}
+
+evolucion_fallecidos <- function() {
+  #cargamos los datos de fallecidos
+  path_file <- paste(path, file_fallecidos, sep = "/")  
+  ds_fallecidos <- read_excel(path_file, sheet = file_fallecidos_sheet, col_names = TRUE, col_types = NULL, skip = 2)
+  ds_fallecidos <- data.frame("ano" = ds_fallecidos[[1,]],  "fallecidos" = ds_fallecidos$Total)
+  #limpiamos el ds
+  ds_fallecidos$fallecidos[is.na(ds_fallecidos$fallecidos)] <- 0
+  #creamos la representación gráfica
+  gra_fallecidos_ano <- ggplot(ds_fallecidos, aes(x = ds_fallecidos$ano, y = ds_fallecidos$fallecidos))
+  gra_fallecidos_ano + geom_point() + geom_line() + labs(x = "Año", y = "Fallecidos") + labs(title = "Evolución de fallecidos por año", subtitle = "Datos: DGT")
+}
+
+evolucion_fallecidos()
+
+```
+
+
+###  Evolución de fallecimientos con evolución del parque automovilístico.
+
+```{r tabla estadistica, echo=FALSE, warning=FALSE}
+   evolucion_fallecidos_y_parque <- function() {
+  #cargamos los datos de fallecidos
+  path_file_fallecidos <- paste(path, file_fallecidos, sep = "/")  
+  ds_fallecidos <- read_excel(path_file_fallecidos, sheet = file_fallecidos_sheet, col_names = TRUE, col_types = NULL, skip = 2)
+  ds_fallecidos <- data.frame("ano" = ds_fallecidos[[1,]],  "fallecidos" = ds_fallecidos$Total)
+  #cargamos los datos del parque
+  path_file_parque <- paste(path, file_parque, sep = "/")  
+  ds_parque <- read_excel(path_file_parque, sheet = file_parque_sheet, col_names = TRUE, col_types = NULL, skip = 2)
+  ds_parque <- data.frame("ano" = ds_parque[[1,]],  "fallecidos" = ds_parque$TOTAL)
+  #combinamos todos los datos en un único ds
+  ds_fallecidos_parque <- merge(x = ds_fallecidos, y = ds_parque, by = "ano", all = TRUE)
+  colnames(ds_fallecidos_parque) <- c("ano","fallecidos","parque")
+  #limpiamos el ds
+  ds_fallecidos_parque$fallecidos[is.na(ds_fallecidos_parque$fallecidos)] <- 0
+  ds_fallecidos_parque$parque[is.na(ds_fallecidos_parque$parque)] <- 0
+  #calculamos el ratio de fallecidos por millón de vehículos
+  ds_fallecidos_parque <- mutate(ds_fallecidos_parque, ratio = ds_fallecidos_parque$fallecidos/ds_fallecidos_parque$parque)
+  #creamos la representación gráfica
+  gra_fallecidos_parque <- ggplot(ds_fallecidos_parque, aes(x = ds_fallecidos_parque$ano, y = ds_fallecidos_parque$ratio))
+  gra_fallecidos_parque + geom_point() + geom_line() + labs(x = "Año", y = "Ratio de fallecidos por millón de vehículos") + labs(title = "Evolución de fallecidos por año teniendo en cuenta el parque automovilístico", subtitle = "Datos: DGT")
+ }
+evolucion_fallecidos_y_parque()
+
+```
+
+
+
+* Se observa un aumento en el número de accidentes mortales en los últimos años, que es inferior cuando tenemos en cuanta le evolución de parque automovilístico en dicho periodo.
+
+
+
+
+
+Febrero de 2018. Sergio Buitrago.
